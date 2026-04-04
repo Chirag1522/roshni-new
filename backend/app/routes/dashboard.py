@@ -157,7 +157,7 @@ async def _fetch_dashboard_data(db: Session, house_id: str) -> DashboardResponse
 
     return await safe_execute(
         asyncio.to_thread(fetch_sync),
-        timeout=5.0,
+        timeout=9.0,
         operation_name="Fetch dashboard sync",
     )
 
