@@ -13,6 +13,8 @@ from config import settings
 logger = logging.getLogger(__name__)
 
 # Create database engine
+# ✅ For Render: Uses internal hostname (dpg-xxx) - no SSL needed
+# ✅ For local/external: Update DATABASE_URL with external hostname + sslmode=require
 engine = create_engine(
     settings.database_url,
     echo=settings.debug,
