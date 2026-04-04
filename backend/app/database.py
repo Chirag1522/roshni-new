@@ -16,9 +16,16 @@ logger = logging.getLogger(__name__)
 engine = create_engine(
     settings.database_url,
     echo=settings.debug,
-    connect_args={"check_same_thread": False} if "sqlite" in settings.database_url else {},
-    pool_pre_ping=True,  # ✅ Test connections before using them
-    pool_recycle=3600,   # ✅ Recycle connections every hour
+    connect_args={
+        "check_same_thread": False,
+        "connect_timeout": 10,  # ✅ 10 second connection timeout
+    } if "sqlite" in settings.database_url else {
+        "connect_timeout": 10,  # ✅ 10 second connection timeout for PostgreSQL
+    },
+    pool_pre_ping=True,       # ✅ Test connections before using them
+    pool_recycle=3600,        # ✅ Recycle connections every hour
+    pool_size=10,             # ✅ Number of connections to keep open
+    max_overflow=10,          # ✅ Number of overflow connections allowed
 )
 
 # Create session factory
@@ -30,8 +37,32 @@ Base = declarative_base()
 def init_db():
     """Initialize database tables."""
     logger.info("Initializing database...")
-    Base.metadata.create_all(bind=engine)
-    logger.info("Database initialized successfully")
+    try:
+        Base.metadata.create_all(bind=engine)
+        logger.info("✅ Database initialized successfully")
+        # Test connection
+        test_connection()
+    except Exception as e:
+        logger.error(f"❌ Failed to initialize database: {e}")
+        raise
+
+def test_connection():
+    """Test database connection and log status."""
+    try:
+        db = SessionLocal()
+        db.execute("SELECT 1")
+        db.close()
+        logger.info("✅ Database connection test PASSED")
+    except Exception as e:
+        logger.error(f"❌ Database connection test FAILED: {e}")
+        logger.error(f"   DATABASE_URL: {settings.database_url[:50]}...")
+        logger.error(f"   Check that:")
+        logger.error(f"   1. Database hostname is reachable")
+        logger.error(f"   2. Credentials are correct (user/password)")
+        logger.error(f"   3. Port is specified (usually 5432)")
+        logger.error(f"   4. SSL mode is configured if required")
+        raise
+
 
 def get_db() -> Generator:
     """
