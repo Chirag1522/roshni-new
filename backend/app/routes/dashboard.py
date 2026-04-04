@@ -36,7 +36,7 @@ async def get_dashboard(house_id: str, db: Session = Depends(get_db)):
 
         result = await safe_execute(
             fetch_dashboard(),
-            timeout=5.0,
+            timeout=10.0,  # ✅ Increased from 5s to 10s (database queries can be slow)
             operation_name="Fetch dashboard",
         )
 
@@ -46,7 +46,11 @@ async def get_dashboard(house_id: str, db: Session = Depends(get_db)):
             logger.debug(f"✅ Dashboard cached: {house_id}")
             return result
 
-        # Timeout - return minimal response
+        # Timeout - return minimal response with cached fallback
+        logger.warning(f"Dashboard timeout for {house_id}")
+        # Return last cached result if available to avoid 504
+        if cached:
+            return cached
         raise HTTPException(status_code=504, detail="Dashboard fetch timeout")
 
     except HTTPException:
@@ -64,12 +68,12 @@ async def _fetch_dashboard_data(db: Session, house_id: str) -> DashboardResponse
         if not house:
             raise HTTPException(status_code=404, detail="House not found")
 
-        # Generation summary (today)
+        # Generation summary (today) - LIMIT to last 1000 records for performance
         today = datetime.utcnow().date()
         today_generation = db.query(GenerationRecord).filter(
             GenerationRecord.house_id == house.id,
             GenerationRecord.created_at >= datetime.combine(today, datetime.min.time()),
-        ).all()
+        ).order_by(GenerationRecord.created_at.desc()).limit(1000).all()
 
         today_gen_kwh = sum(g.generation_kwh for g in today_generation)
 
@@ -86,11 +90,11 @@ async def _fetch_dashboard_data(db: Session, house_id: str) -> DashboardResponse
             ),
         ) if today_generation else None
 
-        # Demand summary (today)
+        # Demand summary (today) - LIMIT to last 1000 records for performance
         today_demand = db.query(DemandRecord).filter(
             DemandRecord.house_id == house.id,
             DemandRecord.created_at >= datetime.combine(today, datetime.min.time()),
-        ).all()
+        ).order_by(DemandRecord.created_at.desc()).limit(1000).all()
 
         today_demand_kwh = sum(d.demand_kwh for d in today_demand)
 
