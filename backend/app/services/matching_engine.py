@@ -186,18 +186,3 @@ class MatchingEngine:
         """Get current pool rate from settings."""
         from config import settings
         return settings.solar_pool_rate
-
-            sun_earned = pool_kwh_sold * share
-            seller_house.current_month_sun_minted = (
-                (seller_house.current_month_sun_minted or 0) + sun_earned
-            )
-
-        self.db.commit()
-
-    def _get_grid_rate(self) -> float:
-        from config import settings
-        return settings.discom_grid_rate
-
-    def _get_pool_rate(self) -> float:
-        from config import settings
-        return settings.solar_pool_rate
