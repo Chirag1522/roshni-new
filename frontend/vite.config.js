@@ -16,6 +16,6 @@ export default defineConfig({
 
   preview: {
     host: true,
-    allowedHosts: ['roshni-f74j.onrender.com']
+    allowedHosts: ['roshni-new-frontend.onrender.com']
   }
 })
