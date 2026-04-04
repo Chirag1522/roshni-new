@@ -58,6 +58,21 @@ class Settings(BaseSettings):
         case_sensitive = False
         extra = "ignore"   # 🔥 prevents crash if extra env vars exist
 
+    def __init__(self, **data):
+        """Initialize settings and sanitize database_url."""
+        super().__init__(**data)
+        # ✅ FIX: Strip 'DATABASE_URL=' prefix if included (edge case)
+        if self.database_url.startswith("DATABASE_URL="):
+            self.database_url = self.database_url.replace("DATABASE_URL=", "", 1)
+        
+        # ✅ DEBUG: Log which database URL is being used
+        if "oregon-postgres.render.com" in self.database_url:
+            import logging
+            logging.warning("⚠️  Using EXTERNAL PostgreSQL URL - ensure SSL is available")
+        elif "dpg-" in self.database_url and ":" in self.database_url:
+            import logging
+            logging.info("✅ Using INTERNAL PostgreSQL URL - Render connection")
+
     # ================= HELPERS =================
     @property
     def cors_origins(self) -> list:
