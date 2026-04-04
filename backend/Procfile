@@ -1,0 +1,5 @@
+# Production-optimized Procfile
+# - Single worker (-w 1) to avoid concurrency issues
+# - Limiting threads to prevent overload
+# - Timeout: 120s for slow operations (AI, matching)
+web: gunicorn -w 1 -k uvicorn.workers.UvicornWorker -t 120 --access-logfile - main:app
